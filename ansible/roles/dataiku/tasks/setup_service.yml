@@ -1,0 +1,15 @@
+---
+- name: "Install Dataiku service"
+  shell: |
+    {{ dataiku_install_dir }}/dataiku-dss-{{ dataiku_version }}/scripts/install/install-boot.sh \
+    {{ dataiku_data_dir }} {{ dataiku_user }}
+
+- name: "Reload systemd daemon"
+  systemd:
+    daemon_reload: yes
+
+- name: "Enable and start Dataiku service"
+  systemd:
+    name: dataiku
+    enabled: yes
+    state: started

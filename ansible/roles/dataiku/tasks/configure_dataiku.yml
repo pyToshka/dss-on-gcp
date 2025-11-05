@@ -1,0 +1,124 @@
+---
+- name: "Download Hadoop for DSS"
+  get_url:
+    url: "{{ dss_hadoop_standalone }}"
+    dest: "/tmp/dataiku-install/dataiku-dss-hadoop-{{ dataiku_version }}.tar.gz"
+    mode: '0644'
+
+- name: "Check if Hadoop exist"
+  stat:
+    path: "/tmp/dataiku-install/dataiku-dss-hadoop-{{ dataiku_version }}.tar.gz"
+  register: hadoop_downloaded
+
+- name: "Download Spark for DSS"
+  get_url:
+    url: "{{ dss_spark_standalone }}"
+    dest: "/tmp/dataiku-install/dataiku-dss-spark-{{ dataiku_version }}.tar.gz"
+    mode: '0644'
+
+- name: "Check if Spark exist"
+  stat:
+    path: "/tmp/dataiku-install/dataiku-dss-spark-{{ dataiku_version }}.tar.gz"
+  register: spark_downloaded
+
+- name: "Setup Hadoop for DSS"
+  become_user: "{{ dataiku_user }}"
+  shell: |
+    {{ dataiku_data_dir }}/bin/dssadmin \
+    install-hadoop-integration \
+    -standaloneArchive /tmp/dataiku-install/dataiku-dss-hadoop-{{ dataiku_version }}.tar.gz
+  when: hadoop_downloaded.stat.exists
+
+- name: "Setup Spark for DSS"
+  become_user: "{{ dataiku_user }}"
+  shell: |
+    {{ dataiku_data_dir }}/bin/dssadmin \
+    install-spark-integration \
+    -standaloneArchive /tmp/dataiku-install//dataiku-dss-spark-{{ dataiku_version }}.tar.gz
+  when: hadoop_downloaded.stat.exists
+
+- name: "Delete default nginx vhost"
+  file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  when: dns_name != ""
+
+- name: "Configure Nginx vhost"
+  template:
+    src: nginx_dss.jinja2
+    dest: /etc/nginx/sites-enabled/dataiku.conf
+  notify: restart nginx
+  when: dns_name != ""
+
+- name: "Register certbot"
+  shell: |
+    certbot --nginx -d {{ dns_name }} -m {{ letsencrypt_email }} --agree-tos --non-interactive
+  notify: restart nginx
+  when: use_letsencrypt|default(false)|bool == true and letsencrypt_email != "" and dns_name != ""
+
+- name: "Setting up DSS item exports to PDF or images"
+  become_user: "{{ dataiku_user }}"
+  run_once: true
+  shell: |
+    {{ dataiku_data_dir }}/bin/dssadmin install-graphics-export
+
+- name: "Set soft and hard nofile limits for user {{ dataiku_user }}"
+  pam_limits:
+    domain: "{{ dataiku_user }}"
+    limit_type: '-'
+    limit_item: "{{ item }}"
+    value: 65535
+    comment: "Increased limit for user {{ dataiku_user }}"
+  loop:
+    - nofile
+    - nproc
+
+- name: "Build the base image"
+  become_user: "{{ dataiku_user }}"
+  run_once: true
+  shell: |
+    {{ dataiku_data_dir }}/bin/dssadmin \
+    build-base-image --type container-exec
+  when: dss_build_image|default(false)|bool == true
+
+- name: "Build the cde image"
+  become_user: "{{ dataiku_user }}"
+  run_once: true
+  shell: |
+    {{ dataiku_data_dir }}/bin/dssadmin \
+    build-base-image --type cde
+  when: dss_build_image|default(false)|bool == true
+
+- name: "Build the spark image"
+  become_user: "{{ dataiku_user }}"
+  run_once: true
+  shell: |
+    {{ dataiku_data_dir }}/bin/dssadmin \
+    build-base-image --type spark
+  when: dss_build_image|default(false)|bool == true
+
+- name: "Login to docker registry"
+  become_user: "{{ dataiku_user }}"
+  run_once: true
+  shell: |
+    gcloud auth configure-docker {{ gcp_region }}-docker.pkg.dev
+
+- name: "Enable user namespaces"
+  sysctl:
+    name: user.max_user_namespaces
+    value: "128344"
+    state: present
+    sysctl_file: /etc/sysctl.d/99-max-user-namespaces.conf
+    reload: yes
+
+- name: "Download GCP monitoring agent"
+  get_url:
+    url: "{{ gcp_monitoring_agent_url }}"
+    dest: "/tmp/add-google-cloud-ops-agent-repo.sh"
+    mode: '0755'
+  when: use_gcp_monitoring|default(false)|bool == true
+
+- name: "Install GCP monitoring agent"
+  shell: |
+    bash /tmp/add-google-cloud-ops-agent-repo.sh --also-install
+  when: use_gcp_monitoring|default(false)|bool == true

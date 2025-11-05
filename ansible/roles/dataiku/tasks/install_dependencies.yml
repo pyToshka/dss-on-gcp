@@ -1,0 +1,94 @@
+---
+- name: "Update apt cache"
+  apt:
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: "Install Letsencrypt dependencies"
+  apt:
+    name: "{{ letsencrypt_packages }}"
+  when: use_letsencrypt|default(false)|bool == true
+
+- name: "Install Java"
+  apt:
+    name: "{{ java_package }}"
+    state: present
+
+- name: "Install Python and development tools"
+  apt:
+    name: "{{ dataiku_additional_packages }}"
+    state: present
+
+- name: "Install pip packages"
+  pip:
+    name: "{{ item }}"
+    state: present
+    executable: pip3
+  loop:
+    - "{{ pip_packages }}"
+
+- name: "Add Docker GPG apt key"
+  apt_key:
+    url: "https://download.docker.com/linux/{{ ansible_os_family | lower }}/gpg"
+    state: present
+
+- name: "Add Docker apt repository"
+  apt_repository:
+    repo: "deb [arch=amd64] https://download.docker.com/linux/{{ ansible_distribution | lower }} {{ ansible_distribution_release }} stable"
+    state: present
+
+- name: "Install Docker Engine and packages"
+  apt:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - docker-ce
+    - docker-ce-cli
+    - containerd.io
+    - docker-buildx-plugin
+    - docker-compose-plugin
+
+- name: "Remove the gcloud client snap"
+  snap:
+    name: google-cloud-cli
+    state: absent
+
+- name: "Add GCP GPG apt key"
+  apt_key:
+    url: " https://packages.cloud.google.com/apt/doc/apt-key.gpg"
+    state: present
+
+- name: "Add gcp apt repository"
+  apt_repository:
+    repo: "deb [arch=amd64] https://packages.cloud.google.com/apt cloud-sdk main"
+    state: present
+
+- name: "Install gcloud client"
+  apt:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - google-cloud-cli
+    - google-cloud-cli-gke-gcloud-auth-plugin
+
+- name: "Check if kubectl exist"
+  stat:
+    path: "/usr/bin/kubectl"
+  register: kubectl
+
+- name: "Download kubectl"
+  uri:
+    url: "https://dl.k8s.io/release/{{ kubectl_version }}/bin/linux/amd64/kubectl"
+    dest: /usr/bin/kubectl
+    mode: '0755'
+  when: not kubectl.stat.exists
+
+- name: "Ensure directories exist"
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+    - "{{ dataiku_install_dir }}"
+    - "{{ dataiku_data_dir }}"
+    - "/tmp/dataiku-install"

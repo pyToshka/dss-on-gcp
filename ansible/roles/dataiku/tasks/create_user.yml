@@ -1,0 +1,25 @@
+---
+- name: "Create Dataiku group"
+  group:
+    name: "{{ dataiku_group }}"
+    state: present
+
+- name: "Create Dataiku user"
+  user:
+    name: "{{ dataiku_user }}"
+    group: "{{ dataiku_group }}"
+    home: "{{ dataiku_data_dir }}"
+    shell: /bin/bash
+    system: yes
+    create_home: yes
+
+- name: "Set ownership on Dataiku directories"
+  file:
+    path: "{{ item }}"
+    owner: "{{ dataiku_user }}"
+    group: "{{ dataiku_group }}"
+    state: directory
+    recurse: yes
+  loop:
+    - "{{ dataiku_install_dir }}"
+    - "{{ dataiku_data_dir }}"

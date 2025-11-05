@@ -1,0 +1,25 @@
+#!/bin/bash
+set -e
+
+apt-get update
+apt-get upgrade -y
+apt-get install -y \
+  python3-pip \
+  python3-dev \
+  curl \
+  wget \
+  git \
+  default-jre \
+  default-jdk \
+  acl \
+  unzip \
+  zip \
+  build-essential \
+  libssl-dev \
+  libffi-dev \
+  libxml2-dev \
+  libxslt1-dev \
+  zlib1g-dev \
+  nginx
+
+gcloud container clusters get-credentials ${gke_cluster_name} --region ${gke_region} --project ${gke_project_id}

@@ -1,0 +1,78 @@
+---
+- name: "Check if Dataiku is already installed"
+  stat:
+    path: "{{ dataiku_install_dir }}/dataiku-dss-{{ dataiku_version }}"
+  register: dataiku_installed
+
+- name: "Download Dataiku DSS"
+  get_url:
+    url: "{{ dataiku_download_url }}"
+    dest: "/tmp/dataiku-install/dataiku-dss-{{ dataiku_version }}.tar.gz"
+    mode: '0644'
+  when: not dataiku_installed.stat.exists
+
+- name: "Extract Dataiku archive"
+  unarchive:
+    src: "/tmp/dataiku-install/dataiku-dss-{{ dataiku_version }}.tar.gz"
+    dest: "{{ dataiku_install_dir }}"
+    remote_src: yes
+    owner: "{{ dataiku_user }}"
+    group: "{{ dataiku_group }}"
+  when: not dataiku_installed.stat.exists
+
+- name: "Set permissions on Dataiku installation"
+  file:
+    path: "{{ dataiku_install_dir }}/dataiku-dss-{{ dataiku_version }}"
+    owner: "{{ dataiku_user }}"
+    group: "{{ dataiku_group }}"
+    recurse: yes
+  when: not dataiku_installed.stat.exists
+
+- name: "Check if data directory is initialized"
+  stat:
+    path: "{{ dataiku_data_dir }}/bin/dss"
+  register: dataiku_initialized
+
+- name: "Dataiku install dependencies"
+  shell: |
+    {{ dataiku_install_dir }}/dataiku-dss-{{ dataiku_version }}/scripts/install/install-deps.sh -yes \
+    -with-libreoffice \
+    -with-r \
+    -with-chrome
+  when: not dataiku_installed.stat.exists
+
+- name: "Initialize Dataiku data directory"
+  become_user: "{{ dataiku_user }}"
+  shell: |
+    {{ dataiku_install_dir }}/dataiku-dss-{{ dataiku_version }}/installer.sh -y \
+      -d {{ dataiku_data_dir }} \
+      -p {{ dataiku_port }}
+  args:
+    creates: "{{ dataiku_data_dir }}/bin/dss"
+  when: not dataiku_initialized.stat.exists
+
+- name: "Initialize Dataiku data directory"
+  become_user: "{{ dataiku_user }}"
+  shell: |
+    {{ dataiku_data_dir }}/bin/dssadmin install-R-integration
+  args:
+    creates: "{{ dataiku_data_dir }}/bin/dss"
+  when: not dataiku_initialized.stat.exists
+
+- name: "Install Dataiku license if provided"
+  copy:
+    src: "{{ dataiku_license_file }}"
+    dest: "{{ dataiku_data_dir }}/config/license.json"
+    owner: "{{ dataiku_user }}"
+    group: "{{ dataiku_group }}"
+    mode: '0600'
+  when: dataiku_license_file != ""
+
+- name: "Add existing user '{{ dataiku_user }}' to groups"
+  ansible.builtin.user:
+    name: '{{ dataiku_user }}'
+    groups: "{{ item }}"
+    append: true
+  loop:
+    - docker
+    - sudo

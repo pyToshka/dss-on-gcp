@@ -1,0 +1,10 @@
+---
+collections:
+  - name: google.cloud
+    version: ">=1.0.0"
+  - name: community.general
+    version: ">=6.0.0"
+  - name: dataiku.dss
+    source: https://github.com/dataiku/dataiku-ansible-collection
+    type: git
+    version: main

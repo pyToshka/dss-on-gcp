@@ -1,0 +1,59 @@
+---
+# Dataiku DSS defaults version
+dataiku_version: "14.2.0"
+dataiku_download_url: "https://cdn.downloads.dataiku.com/public/studio/{{ dataiku_version }}/dataiku-dss-{{ dataiku_version }}.tar.gz"
+
+# Path for Dataiku installation
+dataiku_install_dir: "/opt/dataiku"
+dataiku_data_dir: "/data/dataiku"
+
+# Default Dataiku user and group
+dataiku_user: "dataiku"
+dataiku_group: "dataiku"
+
+# Default Dataiku port
+dataiku_port: 10000
+
+# Default Dataiku license file if you have
+dataiku_license_file: ""
+
+# Java settings
+java_package: "default-jdk"
+
+# Python version
+python_version: "python3.9"
+
+# Additional packages to install
+dataiku_additional_packages:
+  - python3-pip
+  - python3-dev
+  - build-essential
+  - libssl-dev
+  - libffi-dev
+  - libxml2-dev
+  - libxslt1-dev
+  - zlib1g-dev
+  - nginx
+  - acl
+  - apt-transport-https
+  - ca-certificates
+  - curl
+  - software-properties-common
+pip_packages:
+  - virtualenv
+  - setuptools
+  - wheel
+
+dss_spark_standalone: "https://cdn.downloads.dataiku.com/public/dss/{{ dataiku_version }}/dataiku-dss-spark-standalone-{{ dataiku_version }}-3.5.3-generic-hadoop3.tar.gz"
+dss_hadoop_standalone: "https://cdn.downloads.dataiku.com/public/dss/{{ dataiku_version }}/dataiku-dss-hadoop-standalone-libs-generic-hadoop3-{{ dataiku_version }}.tar.gz"
+kubectl_version: "v1.33.5"
+use_letsencrypt: false
+letsencrypt_email: ""
+dns_name: ""
+letsencrypt_packages:
+  - certbot
+  - python3-certbot-nginx
+gcp_region: "europe-north1"
+use_gcp_monitoring: false
+gcp_monitoring_agent_url: "https://dl.google.com/cloudagents/add-google-cloud-ops-agent-repo.sh"
+dss_build_image: true

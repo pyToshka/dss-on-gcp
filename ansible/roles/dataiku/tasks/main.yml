@@ -1,0 +1,15 @@
+---
+- name: Install dependencies
+  include_tasks: install_dependencies.yml
+
+- name: Create Dataiku user and group
+  include_tasks: create_user.yml
+
+- name: Download and install Dataiku
+  include_tasks: install_dataiku.yml
+
+- name: Configure Dataiku instance
+  include_tasks: configure_dataiku.yml
+
+- name: Setup systemd service
+  include_tasks: setup_service.yml

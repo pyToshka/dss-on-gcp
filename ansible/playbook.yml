@@ -1,0 +1,8 @@
+---
+# playbook.yml
+# Description: Install and Configure Dataiku DSS
+- name: Install Dataiku DSS
+  hosts: all
+  become: yes
+  roles:
+    - dataiku

@@ -1,0 +1,24 @@
+# See https://pre-commit.com for more information
+# See https://pre-commit.com/hooks.html for more hooks
+repos:
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+    -   id: trailing-whitespace
+    -   id: end-of-file-fixer
+    -   id: check-yaml
+    -   id: check-added-large-files
+
+-   repo: https://github.com/gruntwork-io/pre-commit
+    rev: v0.1.30
+    hooks:
+      - id: terraform-fmt
+      - id: tflint
+- repo: local
+  hooks:
+    - id: terraform-docs
+      name: terraform-docs
+      language: docker_image
+      entry: quay.io/terraform-docs/terraform-docs:latest
+      args: ["--output-file", "README.md", "terraform/"]
+      pass_filenames: false
